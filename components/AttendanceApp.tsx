@@ -1,9 +1,136 @@
 "use client";
-import { useCallback,useEffect,useState } from "react";
+
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import Header from "./Header";import BottomNav from "./BottomNav";
-type Row={weekly_entry_id:number;wasra_number:number;competitor_name:string;d1:number|null;d2:number|null;d3:number|null;d4:number|null;volunteer_role:string|null;volunteer_detail:string|null;attendance_status:string;signed_in_at:string|null;warning_code:string|null};
-export default function AttendanceApp(){const supabase=createClient();const router=useRouter();const [rows,setRows]=useState<Row[]>([]);const [eventName,setEventName]=useState("Loading event");const [eventDate,setEventDate]=useState("");const [query,setQuery]=useState("");const [filter,setFilter]=useState<"all"|"signed"|"waiting">("all");
- const load=useCallback(async()=>{const {data:{user}}=await supabase.auth.getUser();if(!user){router.replace("/login");return}const pilot=process.env.NEXT_PUBLIC_PILOT_EVENT_DATE||"2026-08-20";const {data:event}=await supabase.from("events").select("id,name,event_date").eq("event_date",pilot).maybeSingle();if(!event)return;setEventName(event.name||"Weekly Event");setEventDate(event.event_date);const {data}=await supabase.from("app_sign_in_roster").select("*").eq("event_id",event.id).order("competitor_name");setRows((data||[]) as Row[])},[router,supabase]);useEffect(()=>{load()},[load]);const shown=rows.filter(r=>(filter==="all"||(filter==="signed"?!!r.signed_in_at:!r.signed_in_at))&&(`${r.competitor_name} ${r.wasra_number}`.toLowerCase().includes(query.toLowerCase())));
- return <div className="shell"><Header eventName={eventName} eventDate={eventDate}/><main className="main"><h2>Attendance</h2><div className="toolbar"><button className="secondary" onClick={()=>setFilter("all")}>All ({rows.length})</button><button className="secondary" onClick={()=>setFilter("signed")}>Signed in ({rows.filter(r=>r.signed_in_at).length})</button><button className="secondary" onClick={()=>setFilter("waiting")}>Waiting ({rows.filter(r=>!r.signed_in_at).length})</button></div><input className="search" placeholder="Search name or WASRA" value={query} onChange={e=>setQuery(e.target.value)}/><div className="list">{shown.map(r=><div className="row" key={r.weekly_entry_id}><div className="row-main"><div className="row-name">{r.competitor_name}</div><div className="row-meta">WASRA {r.wasra_number} • Bays {[r.d1,r.d2,r.d3,r.d4].map(v=>v??"–").join("/")}</div><div className="row-meta">{[r.volunteer_role,r.volunteer_detail].filter(Boolean).join(" • ")}</div></div><div className={`status ${r.signed_in_at?"good":"wait"}`}>{r.signed_in_at?"SIGNED IN":"WAITING"}</div></div>)}</div></main><BottomNav active="attendance"/></div>}
+import Header from "./Header";
+import BottomNav from "./BottomNav";
+
+type RosterRow = {
+  weekly_entry_id: number;
+  event_id: number;
+  wasra_number: number;
+  competitor_name: string;
+  d1: number | null;
+  d2: number | null;
+  d3: number | null;
+  d4: number | null;
+  volunteer_role: string | null;
+  volunteer_detail: string | null;
+  attendance_status: string;
+  signed_in_at: string | null;
+  warning_code: string | null;
+};
+
+type EventRow = {
+  id: number;
+  name: string | null;
+  event_date: string;
+};
+
+export default function AttendanceApp() {
+  const router = useRouter();
+  const [rows, setRows] = useState<RosterRow[]>([]);
+  const [eventName, setEventName] = useState("Loading event");
+  const [eventDate, setEventDate] = useState("");
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<"all" | "signed" | "waiting">("all");
+  const [loadError, setLoadError] = useState("");
+
+  const load = useCallback(async () => {
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
+
+    const { data: events, error: eventError } = await supabase
+      .from("events")
+      .select("id,name,event_date,updated_at")
+      .eq("status", "open")
+      .eq("sign_in_open", true)
+      .order("updated_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(1);
+
+    if (eventError) {
+      setLoadError(eventError.message);
+      return;
+    }
+
+    const event = (events?.[0] ?? null) as EventRow | null;
+    if (!event) {
+      setEventName("No open event");
+      setRows([]);
+      return;
+    }
+
+    setEventName(event.name ?? "WASPS Weekly Event");
+    setEventDate(event.event_date);
+
+    const { data, error } = await supabase
+      .from("app_sign_in_roster")
+      .select("*")
+      .eq("event_id", event.id)
+      .order("competitor_name");
+
+    if (error) {
+      setLoadError(error.message);
+      return;
+    }
+
+    setLoadError("");
+    setRows((data ?? []) as RosterRow[]);
+  }, [router]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const signedCount = rows.filter((row) => row.signed_in_at !== null).length;
+  const waitingCount = rows.length - signedCount;
+  const search = query.trim().toLowerCase();
+
+  const shown = rows.filter((row) => {
+    const statusMatches =
+      filter === "all" ||
+      (filter === "signed" ? row.signed_in_at !== null : row.signed_in_at === null);
+    const searchMatches = `${row.competitor_name} ${row.wasra_number}`
+      .toLowerCase()
+      .includes(search);
+    return statusMatches && searchMatches;
+  });
+
+  return (
+    <div className="shell" id="top">
+      <Header eventName={eventName} eventDate={eventDate} />
+      <main className="main">
+        <h2>Attendance</h2>
+        {loadError !== "" ? <div className="result error">{loadError}</div> : null}
+        <div className="toolbar">
+          <button className="secondary" onClick={() => setFilter("all")}>All ({rows.length})</button>
+          <button className="secondary" onClick={() => setFilter("signed")}>Signed in ({signedCount})</button>
+          <button className="secondary" onClick={() => setFilter("waiting")}>Waiting ({waitingCount})</button>
+        </div>
+        <input className="search" placeholder="Search name or WASRA" value={query} onChange={(event) => setQuery(event.target.value)} />
+        <div className="list">
+          {shown.map((row) => (
+            <div className="row" key={row.weekly_entry_id}>
+              <div className="row-main">
+                <div className="row-name">{row.competitor_name}</div>
+                <div className="row-meta">WASRA {row.wasra_number} • Bays {[row.d1,row.d2,row.d3,row.d4].map((bay)=>bay??"–").join("/")}</div>
+                <div className="row-meta">{[row.volunteer_role,row.volunteer_detail].filter(Boolean).join(" • ")}</div>
+              </div>
+              <div className={`status ${row.signed_in_at ? "good" : "wait"}`}>{row.signed_in_at ? "SIGNED IN" : "WAITING"}</div>
+            </div>
+          ))}
+        </div>
+      </main>
+      <BottomNav active="attendance" />
+    </div>
+  );
+}
