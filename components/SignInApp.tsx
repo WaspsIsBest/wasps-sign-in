@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Header from "./Header";
 import BottomNav from "./BottomNav";
+import LateEntryForm from "./LateEntryForm";
 
 type ScanResult = {
   outcome: string;
   message: string;
   sign_in_id?: number;
+  member_id?: number;
   wasra_number?: number;
   competitor_name?: string;
   signed_in_at?: string;
@@ -86,6 +88,7 @@ export default function SignInApp() {
   const [roster, setRoster] = useState<RosterRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [loadError, setLoadError] = useState("");
+  const [showLateEntry, setShowLateEntry] = useState(false);
 
   const loadEventAndRoster = useCallback(async () => {
     const supabase = createClient();
@@ -256,6 +259,17 @@ export default function SignInApp() {
               </>
             ) : null}
             <p>{result.message}</p>
+            {result.outcome === "member_not_entered" && result.member_id ? (
+              <div className="actions">
+                 <button
+                   className="primary"
+                   type="button"
+                   onClick={() => setShowLateEntry(true)}
+                 >
+                   Add to event and sign in
+                  </button>
+                </div>
+               ) : null}
 
             {result.competitor_name ? (
               <>
