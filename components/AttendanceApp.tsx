@@ -38,8 +38,7 @@ export default function AttendanceApp() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "signed" | "waiting">("all");
   const [loadError, setLoadError] = useState("");
-  const [eventId, setEventId] = useState<number | null>(null);
-
+ 
   const load = useCallback(async () => {
     const supabase = createClient();
     const {
