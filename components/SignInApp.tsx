@@ -246,7 +246,27 @@ export default function SignInApp() {
           </button>
         </form>
         <div className="hint">Scanner ready • Press Enter after manual entry</div>
-
+{showLateEntry &&
+result?.outcome === "member_not_entered" &&
+result.member_id &&
+eventId !== null ? (
+  <LateEntryForm
+    eventId={eventId}
+    member={{
+      member_id: result.member_id,
+      wasra_number: result.wasra_number,
+      competitor_name: result.competitor_name,
+      membership_status: result.membership_status,
+    }}
+    onCancel={() => setShowLateEntry(false)}
+    onCompleted={async (lateEntryResult) => {
+      setResult(lateEntryResult);
+      setShowLateEntry(false);
+      await loadEventAndRoster();
+      inputRef.current?.focus();
+    }}
+  />
+) : null}
         {result ? (
           <section className={`result ${resultStyle()}`}>
             <div className="result-title">
