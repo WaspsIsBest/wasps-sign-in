@@ -1,5 +1,5 @@
 "use client";
-
+// Corrected event importer
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
