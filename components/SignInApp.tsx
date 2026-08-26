@@ -239,7 +239,12 @@ export default function SignInApp() {
                   <div className="fact">
                     <small>SHOOTING ENTRY</small>
                     {[
-                      result.target_type === "E" ? "Electronic" : "Paper",
+                      result.target_type === "E"
+                        ? "Electronic"
+                        : result.target_type === "P"
+                        ? "Paper"
+                        : "Not entered",
+                
                       result.distance,
                       result.shooting_class,
                     ]
