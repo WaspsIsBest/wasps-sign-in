@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Header from "./Header";
 import BottomNav from "./BottomNav";
+import SignInReportButton from "./SignInReportButton";
 
 type RosterRow = {
   weekly_entry_id: number;
@@ -33,9 +34,11 @@ export default function AttendanceApp() {
   const [rows, setRows] = useState<RosterRow[]>([]);
   const [eventName, setEventName] = useState("Loading event");
   const [eventDate, setEventDate] = useState("");
+  const [eventId, setEventId] = useState<number | null>(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "signed" | "waiting">("all");
   const [loadError, setLoadError] = useState("");
+  const [eventId, setEventId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     const supabase = createClient();
@@ -64,11 +67,13 @@ export default function AttendanceApp() {
 
     const event = (events?.[0] ?? null) as EventRow | null;
     if (!event) {
-      setEventName("No open event");
-      setRows([]);
-      return;
+    setEventId(null);
+    setEventName("No open event");
+    setEventDate("");
+    setRows([]);
+    return;
     }
-
+    setEventId(event.id);
     setEventName(event.name ?? "WASPS Weekly Event");
     setEventDate(event.event_date);
 
@@ -109,7 +114,14 @@ export default function AttendanceApp() {
     <div className="shell" id="top">
       <Header eventName={eventName} eventDate={eventDate} />
       <main className="main">
-        <h2>Attendance</h2>
+       <div className="section-head">
+     <h2>Attendance</h2>
+
+     <SignInReportButton
+    eventId={eventId}
+    eventDate={eventDate}
+     />
+</div>
         {loadError !== "" ? <div className="result error">{loadError}</div> : null}
         <div className="toolbar">
           <button className="secondary" onClick={() => setFilter("all")}>All ({rows.length})</button>
