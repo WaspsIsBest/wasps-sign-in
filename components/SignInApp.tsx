@@ -297,7 +297,7 @@ export default function SignInApp() {
                   </div>
                   <div className="fact">
                     <small>MEMBERSHIP</small>
-                    {result.membership_status ?? "Unknown"}
+                    {formatMembershipStatus(result.membership_status)}
                   </div>
                 </div>
               </>
