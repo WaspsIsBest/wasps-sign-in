@@ -50,7 +50,31 @@ type EventRow = {
   event_date: string;
   updated_at: string;
 };
+function formatMembershipStatus(status?: string) {
+  switch (status) {
+    case "current":
+      return "Current";
 
+    case "new_member":
+      return "New member";
+
+    case "renewal_required":
+      return "Renewal required";
+
+    case "not_member":
+      return "Not a member";
+
+    case "unknown":
+    case undefined:
+    case "":
+      return "Unknown";
+
+    default:
+      return status
+        .replaceAll("_", " ")
+        .replace(/\b\w/g, (character) => character.toUpperCase());
+  }
+}
 export default function SignInApp() {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
