@@ -315,45 +315,6 @@ const [visitorResult, setVisitorResult] =
     </div>
   </section>
 ) : null}
-{showVisitor && visitorMode === "menu" ? (
-  <section className="result info">
-    <div className="result-title">
-      VISITOR SIGN-IN
-    </div>
-
-    <p>Select the type of visitor sign-in.</p>
-
-    <div className="actions">
-      <button
-        className="primary"
-        type="button"
-        onClick={() => setVisitorMode("new")}
-      >
-        New visitor
-      </button>
-
-      <button
-        className="primary"
-        type="button"
-        onClick={() => setVisitorMode("returning")}
-      >
-        Returning visitor
-      </button>
-
-      <button
-        className="secondary"
-        type="button"
-        onClick={() => {
-          setShowVisitor(false);
-          setVisitorMode("menu");
-          inputRef.current?.focus();
-        }}
-      >
-        Cancel
-      </button>
-    </div>
-  </section>
-) : null}
 
 {showLateEntry &&
 result?.outcome === "member_not_entered" &&
