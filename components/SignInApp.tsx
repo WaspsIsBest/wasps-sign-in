@@ -315,7 +315,39 @@ const [visitorResult, setVisitorResult] =
     </div>
   </section>
 ) : null}
+{showVisitor &&
+visitorMode === "new" &&
+eventId !== null ? (
+  <NewVisitorForm
+    eventId={eventId}
+    onCancel={() => {
+      setVisitorMode("menu");
+    }}
+    onCompleted={async (completedVisitor) => {
+      setVisitorResult(completedVisitor);
+      setVisitorMode("menu");
+      setShowVisitor(false);
+      inputRef.current?.focus();
+    }}
+  />
+) : null}
 
+{showVisitor &&
+visitorMode === "returning" &&
+eventId !== null ? (
+  <ReturningVisitorForm
+    eventId={eventId}
+    onCancel={() => {
+      setVisitorMode("menu");
+    }}
+    onCompleted={async (completedVisitor) => {
+      setVisitorResult(completedVisitor);
+      setVisitorMode("menu");
+      setShowVisitor(false);
+      inputRef.current?.focus();
+    }}
+  />
+) : null}
 {showLateEntry &&
 result?.outcome === "member_not_entered" &&
 result.member_id &&
