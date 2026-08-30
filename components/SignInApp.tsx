@@ -89,6 +89,8 @@ export default function SignInApp() {
   const [busy, setBusy] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [showLateEntry, setShowLateEntry] = useState(false);
+  const [showVisitor, setShowVisitor] = useState(false);
+
 
   const loadEventAndRoster = useCallback(async () => {
     const supabase = createClient();
@@ -245,7 +247,72 @@ export default function SignInApp() {
             {busy ? "Working..." : "Sign in"}
           </button>
         </form>
-        <div className="hint">Scanner ready • Press Enter after manual entry</div>
+  <div className="hint">
+  Scanner ready • Press Enter after manual entry
+</div>
+
+{!showVisitor && !showLateEntry ? (
+  <div
+    className="actions"
+    style={{ justifyContent: "center" }}
+  >
+    <button
+      className="secondary"
+      type="button"
+      onClick={() => {
+        setShowVisitor(true);
+        setShowLateEntry(false);
+      }}
+      disabled={busy || eventId === null}
+    >
+      Sign in visitor
+    </button>
+  </div>
+) : null}
+
+{showVisitor ? (
+  <section className="result info">
+    <div className="result-title">
+      VISITOR SIGN-IN
+    </div>
+
+    <p>Select the type of visitor sign-in.</p>
+
+    <div className="actions">
+      <button
+        className="primary"
+        type="button"
+        onClick={() => {
+          // New visitor form will be connected next.
+        }}
+      >
+        New visitor
+      </button>
+
+      <button
+        className="primary"
+        type="button"
+        onClick={() => {
+          // Returning visitor search will be connected next.
+        }}
+      >
+        Returning visitor
+      </button>
+
+      <button
+        className="secondary"
+        type="button"
+        onClick={() => {
+          setShowVisitor(false);
+          inputRef.current?.focus();
+        }}
+      >
+        Cancel
+      </button>
+    </div>
+  </section>
+) : null}
+
 {showLateEntry &&
 result?.outcome === "member_not_entered" &&
 result.member_id &&
