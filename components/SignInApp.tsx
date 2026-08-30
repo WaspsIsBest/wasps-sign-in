@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import Header from "./Header";
 import BottomNav from "./BottomNav";
 import LateEntryForm from "./LateEntryForm";
+import NewVisitorForm, { VisitorResult } from "./NewVisitorForm";
+import ReturningVisitorForm from "./ReturningVisitorForm";
 
 type ScanResult = {
   outcome: string;
@@ -90,6 +92,11 @@ export default function SignInApp() {
   const [loadError, setLoadError] = useState("");
   const [showLateEntry, setShowLateEntry] = useState(false);
   const [showVisitor, setShowVisitor] = useState(false);
+  const [visitorMode, setVisitorMode] =
+  useState<"menu" | "new" | "returning">("menu");
+
+const [visitorResult, setVisitorResult] =
+  useState<VisitorResult | null>(null);
 
 
   const loadEventAndRoster = useCallback(async () => {
@@ -269,8 +276,7 @@ export default function SignInApp() {
     </button>
   </div>
 ) : null}
-
-{showVisitor ? (
+{showVisitor && visitorMode === "menu" ? (
   <section className="result info">
     <div className="result-title">
       VISITOR SIGN-IN
@@ -282,9 +288,7 @@ export default function SignInApp() {
       <button
         className="primary"
         type="button"
-        onClick={() => {
-          // New visitor form will be connected next.
-        }}
+        onClick={() => setVisitorMode("new")}
       >
         New visitor
       </button>
@@ -292,9 +296,7 @@ export default function SignInApp() {
       <button
         className="primary"
         type="button"
-        onClick={() => {
-          // Returning visitor search will be connected next.
-        }}
+        onClick={() => setVisitorMode("returning")}
       >
         Returning visitor
       </button>
@@ -304,6 +306,46 @@ export default function SignInApp() {
         type="button"
         onClick={() => {
           setShowVisitor(false);
+          setVisitorMode("menu");
+          inputRef.current?.focus();
+        }}
+      >
+        Cancel
+      </button>
+    </div>
+  </section>
+) : null}
+{showVisitor && visitorMode === "menu" ? (
+  <section className="result info">
+    <div className="result-title">
+      VISITOR SIGN-IN
+    </div>
+
+    <p>Select the type of visitor sign-in.</p>
+
+    <div className="actions">
+      <button
+        className="primary"
+        type="button"
+        onClick={() => setVisitorMode("new")}
+      >
+        New visitor
+      </button>
+
+      <button
+        className="primary"
+        type="button"
+        onClick={() => setVisitorMode("returning")}
+      >
+        Returning visitor
+      </button>
+
+      <button
+        className="secondary"
+        type="button"
+        onClick={() => {
+          setShowVisitor(false);
+          setVisitorMode("menu");
           inputRef.current?.focus();
         }}
       >
