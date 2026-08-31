@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-type ActivePage = "scan" | "attendance" | "import";
+type ActivePage = "scan" | "attendance" | "events" | "import";
 
 export default function BottomNav({ active }: { active: ActivePage }) {
-  const [canImport, setCanImport] = useState(false);
+  const [canManageEvents, setCanManageEvents] = useState(false);
 
   useEffect(() => {
     async function loadRole() {
@@ -24,7 +24,7 @@ export default function BottomNav({ active }: { active: ActivePage }) {
         .eq("user_id", user.id)
         .maybeSingle();
 
-      setCanImport(
+      setCanManageEvents(
         Boolean(
           data?.is_active &&
             (data.role === "admin" || data.role === "organiser"),
@@ -51,13 +51,22 @@ export default function BottomNav({ active }: { active: ActivePage }) {
         Attendance
       </Link>
 
-      {canImport ? (
-        <Link
-          className={`nav-link ${active === "import" ? "active" : ""}`}
-          href="/admin/import-event"
-        >
-          Import
-        </Link>
+      {canManageEvents ? (
+        <>
+          <Link
+            className={`nav-link ${active === "events" ? "active" : ""}`}
+            href="/admin/events"
+          >
+            Events
+          </Link>
+
+          <Link
+            className={`nav-link ${active === "import" ? "active" : ""}`}
+            href="/admin/import-event"
+          >
+            Import
+          </Link>
+        </>
       ) : (
         <a className="nav-link" href="#top">
           Top
