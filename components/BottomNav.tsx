@@ -6,6 +6,38 @@ import { createClient } from "@/lib/supabase/client";
 
 type ActivePage = "scan" | "attendance" | "events" | "import";
 
+const navStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+  gap: "6px",
+  padding: "6px",
+  width: "100%",
+} as const;
+
+const linkStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minWidth: 0,
+  minHeight: "38px",
+  padding: "7px 4px",
+  borderRadius: "10px",
+  backgroundColor: "#edf3f9",
+  color: "#082f49",
+  fontSize: "14px",
+  fontWeight: 700,
+  lineHeight: 1.1,
+  textAlign: "center",
+  textDecoration: "none",
+  whiteSpace: "nowrap",
+} as const;
+
+const activeLinkStyle = {
+  ...linkStyle,
+  backgroundColor: "#dce9f5",
+  color: "#005a9c",
+} as const;
+
 export default function BottomNav({ active }: { active: ActivePage }) {
   const [canManageEvents, setCanManageEvents] = useState(false);
 
@@ -35,40 +67,32 @@ export default function BottomNav({ active }: { active: ActivePage }) {
     void loadRole();
   }, []);
 
+  function styleFor(page: ActivePage) {
+    return active === page ? activeLinkStyle : linkStyle;
+  }
+
   return (
-    <nav className="bottom-nav">
-      <Link
-        className={`nav-link ${active === "scan" ? "active" : ""}`}
-        href="/sign-in"
-      >
+    <nav className="bottom-nav" style={navStyle}>
+      <Link href="/sign-in" style={styleFor("scan")}>
         Scan
       </Link>
 
-      <Link
-        className={`nav-link ${active === "attendance" ? "active" : ""}`}
-        href="/attendance"
-      >
+      <Link href="/attendance" style={styleFor("attendance")}>
         Attendance
       </Link>
 
       {canManageEvents ? (
         <>
-          <Link
-            className={`nav-link ${active === "events" ? "active" : ""}`}
-            href="/admin/events"
-          >
+          <Link href="/admin/events" style={styleFor("events")}>
             Events
           </Link>
 
-          <Link
-            className={`nav-link ${active === "import" ? "active" : ""}`}
-            href="/admin/import-event"
-          >
+          <Link href="/admin/import-event" style={styleFor("import")}>
             Import
           </Link>
         </>
       ) : (
-        <a className="nav-link" href="#top">
+        <a href="#top" style={linkStyle}>
           Top
         </a>
       )}
