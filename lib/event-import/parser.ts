@@ -57,7 +57,10 @@ function iso(v: unknown) {
   const s = text(v);
   
 const m = s.match(
-  /^(\d{1,2})[-/]([A-Za-z]{3}|\d{1,2})[-/](\d{
+  /^(\d{1,2})\d{2,4}$/,
+);
+
+if (!m) return "";
 
 const months = [
   "jan",
@@ -74,9 +77,7 @@ const months = [
   "dec",
 ];
 
-  
-
-  const month = /^[A-Za-z]/.test(m[2])
+    const month = /^[A-Za-z]/.test(m[2])
     ? months.indexOf(m[2].toLowerCase()) + 1
     : Number(m[2]);
 
