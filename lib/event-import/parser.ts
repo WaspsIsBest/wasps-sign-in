@@ -55,23 +55,26 @@ function iso(v: unknown) {
   }
 
   const s = text(v);
+  
+const m = s.match(
+  /^(\d{1,2})[-/]([A-Za-z]{3}|\d{1,2})[-/](\d{
 
-  const m = s.match(
-    /^(\d{1,2})[-/]([A-Za-z]{3}|\d{1,2})[-/](\d{2,4})$/,
 const months = [
-    "jan",
-    "feb",
-    "mar",
-    "apr",
-    "may",
-    "jun",
-    "jul",
-    "aug",
-    "sep",
-    "oct",
-    "nov",
-    "dec",
-  ];
+  "jan",
+  "feb",
+  "mar",
+  "apr",
+  "may",
+  "jun",
+  "jul",
+  "aug",
+  "sep",
+  "oct",
+  "nov",
+  "dec",
+];
+
+  
 
   const month = /^[A-Za-z]/.test(m[2])
     ? months.indexOf(m[2].toLowerCase()) + 1
