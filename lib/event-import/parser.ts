@@ -58,7 +58,7 @@ function iso(v: unknown) {
 
   const m = s.match(
     /^(\d{1,2})[-/]([A-Za-z]{3}|\d{1,2})[-/](\d{2,4})$/,
-onst months = [
+const months = [
     "jan",
     "feb",
     "mar",
