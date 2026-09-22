@@ -135,16 +135,33 @@ export default function EventsAdminApp() {
   const today = new Date();
   const localToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
-  const shownEvents = useMemo(() => {
-    return events.filter((event) => {
-      if (filter === "all") return true;
-      if (filter === "open") return event.sign_in_open || event.is_active_event;
-      if (filter === "history") {
-        return event.event_date < localToday || ["closed", "finalised", "cancelled"].includes(event.calendar_status);
-      }
-      return event.event_date >= localToday && !["finalised", "cancelled"].includes(event.calendar_status);
-    });
-  }, [events, filter, localToday]);
+ const shownEvents = useMemo(() => {
+  const byDateAsc = (a: EventRow, b: EventRow) =>
+    a.event_date !== b.event_date ? a.event_date.localeCompare(b.event_date) : a.id - b.id;
+  const byDateDesc = (a: EventRow, b: EventRow) =>
+    a.event_date !== b.event_date ? b.event_date.localeCompare(a.event_date) : b.id - a.id;
+
+  if (filter === "all") {
+    const upcoming = events.filter((event) => !isHistory(event)).sort(byDateAsc);
+    const history = events.filter(isHistory).sort(byDateDesc);
+    return [...upcoming, ...history];
+  }
+
+  if (filter === "history") {
+    return events.filter(isHistory).sort(byDateDesc);
+  }
+
+  if (filter === "open") {
+    return events
+      .filter((event) => event.sign_in_open || event.is_active_event)
+      .sort(byDateAsc);
+  }
+
+  // upcoming
+  return events
+    .filter((event) => event.event_date >= localToday && !["finalised", "cancelled"].includes(event.calendar_status))
+    .sort(byDateAsc);
+}, [events, filter, localToday, isHistory]);
 
   function resetCreateForm() {
     setEventDate("");
