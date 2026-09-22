@@ -134,8 +134,13 @@ export default function EventsAdminApp() {
 
   const today = new Date();
   const localToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+const isHistory = useCallback(
+  (event: EventRow) =>
+    event.event_date < localToday || ["closed", "finalised", "cancelled"].includes(event.calendar_status),
+  [localToday],
+);
 
- const shownEvents = useMemo(() => {
+const shownEvents = useMemo(() => {
   const byDateAsc = (a: EventRow, b: EventRow) =>
     a.event_date !== b.event_date ? a.event_date.localeCompare(b.event_date) : a.id - b.id;
   const byDateDesc = (a: EventRow, b: EventRow) =>
