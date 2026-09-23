@@ -259,12 +259,22 @@ const [visitorResult, setVisitorResult] =
   <div className="hint">
   Scanner ready • Press Enter after manual entry
 </div>
-
-{!showVisitor && !showLateEntry ? (
+{!showVisitor && !showLateEntry && !showWasraMember ? (
   <div
     className="actions"
-    style={{ justifyContent: "center" }}
+    style={{ justifyContent: "center", gap: "0.5rem" }}
   >
+    <button
+      className="secondary"
+      type="button"
+      onClick={() => {
+        setShowWasraMember(true);
+      }}
+      disabled={busy || eventId === null}
+    >
+      Add WASRA Member
+    </button>
+
     <button
       className="secondary"
       type="button"
@@ -274,10 +284,11 @@ const [visitorResult, setVisitorResult] =
       }}
       disabled={busy || eventId === null}
     >
-      Sign in visitor
+      Sign in Visitor
     </button>
   </div>
 ) : null}
+
 {showVisitor && visitorMode === "menu" ? (
   <section className="result info">
     <div className="result-title">
@@ -455,6 +466,19 @@ eventId !== null ? (
             <p>Waiting for the next membership card.</p>
           </section>
         )}
+        {showWasraMember ? (
+  <WasraMemberForm
+    onCancel={() => {
+      setShowWasraMember(false);
+      inputRef.current?.focus();
+    }}
+    onCompleted={async () => {
+      setShowWasraMember(false);
+      await loadEventAndRoster();
+      inputRef.current?.focus();
+    }}
+  />
+) : null}
 
         <section className="stats">
           <div className="stat"><b>{signedCount}</b><span>SIGNED IN</span></div>
