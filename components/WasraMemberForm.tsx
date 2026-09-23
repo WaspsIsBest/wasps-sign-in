@@ -1,7 +1,12 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+
+type Club = {
+  id: number;
+  club_name: string;
+};
 
 type Props = {
   onCancel: () => void;
@@ -16,9 +21,44 @@ export default function WasraMemberForm({
   const [firstName, setFirstName] = useState("");
   const [surname, setSurname] = useState("");
   const [membershipType, setMembershipType] = useState("Senior");
-  const [club, setClub] = useState("WASPS");
+
+  const [clubs, setClubs] = useState<Club[]>([]);
+  const [club, setClub] = useState("");
+
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function loadClubs() {
+      const supabase = createClient();
+
+      const { data, error } = await supabase
+        .from("clubs")
+        .select("id, club_name")
+        .order("club_name");
+
+      if (error) {
+        setError(error.message);
+        return;
+      }
+
+      const clubData = (data ?? []) as Club[];
+
+      setClubs(clubData);
+
+      const waspsClub = clubData.find(
+        (c) => c.club_name.toUpperCase() === "WASPS"
+      );
+
+      if (waspsClub) {
+        setClub(waspsClub.club_name);
+      } else if (clubData.length > 0) {
+        setClub(clubData[0].club_name);
+      }
+    }
+
+    void loadClubs();
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -36,7 +76,7 @@ export default function WasraMemberForm({
           first_name: firstName.trim(),
           surname: surname.trim(),
           membership_type: membershipType,
-          club,
+          club: club,
           is_active: true,
           is_junior: membershipType === "Junior",
           can_be_official: true,
@@ -103,17 +143,21 @@ export default function WasraMemberForm({
           className="scan-input"
           value={club}
           onChange={(e) => setClub(e.target.value)}
+          required
         >
-          <option value="WASPS">WASPS</option>
-          <option value="Mandurah">Mandurah</option>
-          <option value="Albany">Albany</option>
-          <option value="Bunbury">Bunbury</option>
-          <option value="Pinjar">Pinjar</option>
-          <option value="Geraldton">Geraldton</option>
-          <option value="Other">Other</option>
+          <option value="">Select Club</option>
+
+          {clubs.map((clubRow) => (
+            <option
+              key={clubRow.id}
+              value={clubRow.club_name}
+            >
+              {clubRow.club_name}
+            </option>
+          ))}
         </select>
 
-        {error && (
+        {error !== "" && (
           <div className="result error">
             <p>{error}</p>
           </div>
