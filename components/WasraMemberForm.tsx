@@ -16,10 +16,11 @@ export default function WasraMemberForm({
   const [firstName, setFirstName] = useState("");
   const [surname, setSurname] = useState("");
   const [membershipType, setMembershipType] = useState("Senior");
+  const [club, setClub] = useState("WASPS");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     setBusy(true);
@@ -28,18 +29,22 @@ export default function WasraMemberForm({
     try {
       const supabase = createClient();
 
-      const { error } = await supabase
+      const { error: insertError } = await supabase
         .from("members")
         .insert({
           wasra_number: Number(wasraNumber),
           first_name: firstName.trim(),
           surname: surname.trim(),
           membership_type: membershipType,
-          club: "WASRA",
+          club,
           is_active: true,
+          is_junior: membershipType === "Junior",
+          can_be_official: true,
         });
 
-      if (error) throw error;
+      if (insertError) {
+        throw insertError;
+      }
 
       await onCompleted();
     } catch (err: any) {
@@ -52,10 +57,10 @@ export default function WasraMemberForm({
   return (
     <section className="result info">
       <div className="result-title">
-        ADD WASRA MEMBER
+        ADD MEMBER
       </div>
 
-      <form onSubmit={submit}>
+      <form onSubmit={handleSubmit}>
         <input
           className="scan-input"
           type="number"
@@ -67,6 +72,7 @@ export default function WasraMemberForm({
 
         <input
           className="scan-input"
+          type="text"
           placeholder="First Name"
           value={firstName}
           onChange={(e) => setFirstName(e.target.value)}
@@ -75,6 +81,7 @@ export default function WasraMemberForm({
 
         <input
           className="scan-input"
+          type="text"
           placeholder="Surname"
           value={surname}
           onChange={(e) => setSurname(e.target.value)}
@@ -92,22 +99,38 @@ export default function WasraMemberForm({
           <option value="Life">Life</option>
         </select>
 
-        {error !== "" && (
-          <p className="muted">{error}</p>
+        <select
+          className="scan-input"
+          value={club}
+          onChange={(e) => setClub(e.target.value)}
+        >
+          <option value="WASPS">WASPS</option>
+          <option value="Mandurah">Mandurah</option>
+          <option value="Albany">Albany</option>
+          <option value="Bunbury">Bunbury</option>
+          <option value="Pinjar">Pinjar</option>
+          <option value="Geraldton">Geraldton</option>
+          <option value="Other">Other</option>
+        </select>
+
+        {error && (
+          <div className="result error">
+            <p>{error}</p>
+          </div>
         )}
 
         <div className="actions">
           <button
-            className="primary"
             type="submit"
+            className="primary"
             disabled={busy}
           >
-            {busy ? "Saving..." : "Save"}
+            {busy ? "Saving..." : "Save Member"}
           </button>
 
           <button
-            className="secondary"
             type="button"
+            className="secondary"
             onClick={onCancel}
             disabled={busy}
           >
