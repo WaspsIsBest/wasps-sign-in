@@ -20,6 +20,7 @@ export default function WasraMemberForm({
   const [wasraNumber, setWasraNumber] = useState("");
   const [firstName, setFirstName] = useState("");
   const [surname, setSurname] = useState("");
+  const [firearmsAuthority, setFirearmsAuthority] = useState("");
   const [membershipType, setMembershipType] = useState("Senior");
 
   const [clubs, setClubs] = useState<Club[]>([]);
@@ -75,8 +76,9 @@ export default function WasraMemberForm({
           wasra_number: Number(wasraNumber),
           first_name: firstName.trim(),
           surname: surname.trim(),
+          firearms_authority: firearmsAuthority.trim(),
           membership_type: membershipType,
-          club: club,
+          club,
           is_active: true,
           is_junior: membershipType === "Junior",
           can_be_official: true,
@@ -128,6 +130,15 @@ export default function WasraMemberForm({
           required
         />
 
+        <input
+          className="scan-input"
+          type="text"
+          placeholder="Firearms Authority Number"
+          value={firearmsAuthority}
+          onChange={(e) => setFirearmsAuthority(e.target.value)}
+          required
+        />
+
         <select
           className="scan-input"
           value={membershipType}
@@ -157,7 +168,7 @@ export default function WasraMemberForm({
           ))}
         </select>
 
-        {error !== "" && (
+        {error && (
           <div className="result error">
             <p>{error}</p>
           </div>
