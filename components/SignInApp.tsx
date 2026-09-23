@@ -8,6 +8,7 @@ import BottomNav from "./BottomNav";
 import LateEntryForm from "./LateEntryForm";
 import NewVisitorForm, { VisitorResult } from "./NewVisitorForm";
 import ReturningVisitorForm from "./ReturningVisitorForm";
+import WasraMemberForm from "./WasraMemberForm";
 
 type ScanResult = {
   outcome: string;
@@ -92,6 +93,7 @@ export default function SignInApp() {
   const [loadError, setLoadError] = useState("");
   const [showLateEntry, setShowLateEntry] = useState(false);
   const [showVisitor, setShowVisitor] = useState(false);
+  const [showWasraMember, setShowWasraMember] = useState(false);
   const [visitorMode, setVisitorMode] =
   useState<"menu" | "new" | "returning">("menu");
 
