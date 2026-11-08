@@ -114,7 +114,11 @@ export default function EventImportApp() {
     <main className="main">
       <div className="section-head">
         <h2>Import event</h2>
-        <Link href="/sign-in">Back to sign-in</Link>
+        <span>
+          <Link href="/admin/allocate-event">Allocate from TryBooking CSV</Link>
+          {" | "}
+          <Link href="/sign-in">Back to sign-in</Link>
+        </span>
       </div>
 
       <form onSubmit={validateFiles} className="result info">

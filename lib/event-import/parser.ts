@@ -55,10 +55,9 @@ function iso(v: unknown) {
   }
 
   const s = text(v);
-  
-const m = s.match(
-  /^(\d{1,2})\d{2,4}$/,
-);
+
+  // Day-first text dates such as "5/7/2026", "05-07-26" or "5 Jul 2026".
+  const m = s.match(/^(\d{1,2})[\/\-. ]([A-Za-z]{3,}|\d{1,2})[\/\-. ,]+(\d{2,4})/);
 
 if (!m) return "";
 
