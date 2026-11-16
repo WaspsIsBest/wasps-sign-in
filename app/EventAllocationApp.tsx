@@ -1,5 +1,5 @@
 "use client";
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { parseEntryCsv, pickDefaultDate } from "@/lib/event-allocation/csv";
@@ -29,6 +29,29 @@ const localTodayIso = () => {
 
 const bay = (n: number | null) => (n === null ? "" : String(n));
 
+type ImportSummary = {
+  entries: number;
+  bays: number;
+  volunteers: number;
+  unmatchedMembers: number;
+  unmatchedVolunteers: string[];
+  duplicatesSkipped: number;
+};
+
+// A friendlier version of the database's technical error text.
+function explainImportError(message: string) {
+  if (message.includes("event_has_sign_ins") || /sign-?in/i.test(message)) {
+    return "This event already has sign-ins, so it can no longer be re-imported.";
+  }
+  if (/permission denied|not_authorised|not authorised/i.test(message)) {
+    return "You are not signed in as an administrator or organiser. Sign in again and retry.";
+  }
+  if (/JWT|expired|not authenticated/i.test(message)) {
+    return "Your sign-in has expired. Sign in again and retry.";
+  }
+  return message;
+}
+
 export default function EventAllocationApp() {
   const supabase = useMemo(() => createClient(), []);
 
@@ -40,11 +63,14 @@ export default function EventAllocationApp() {
   const [dates, setDates] = useState<string[]>([]);
   const [eventDate, setEventDate] = useState("");
   const [startWeid, setStartWeid] = useState("");
+  const [weidNote, setWeidNote] = useState("");
 
   const [result, setResult] = useState<AllocationResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [importText, setImportText] = useState("");
+  const [importError, setImportError] = useState("");
+  const [importSummary, setImportSummary] = useState<ImportSummary | null>(null);
+  const importRef = useRef<HTMLElement | null>(null);
   const [imported, setImported] = useState(false);
 
   useEffect(() => {
@@ -87,9 +113,53 @@ export default function EventAllocationApp() {
     void init();
   }, [supabase]);
 
+  // Look up the first WEID from what is already saved in the app. The field
+  // stays editable, so it can always be overridden.
+  useEffect(() => {
+    if (!allowed || !eventDate) return;
+    let cancelled = false;
+
+    async function lookup() {
+      const { data, error } = await supabase.rpc("next_weid", {
+        p_event_date: eventDate,
+      });
+      if (cancelled) return;
+
+      if (error || data?.outcome !== "ok") {
+        setWeidNote(
+          "Could not look up the next WEID automatically (has 013_weid_in_supabase.sql been run in Supabase?). Enter it by hand.",
+        );
+        return;
+      }
+
+      if (data.event_first_weid !== null && data.event_first_weid !== undefined) {
+        setStartWeid(String(data.event_first_weid));
+        setWeidNote(
+          "This date was imported before, so it starts from the same WEID again.",
+        );
+      } else if (data.next_weid !== null && data.next_weid !== undefined) {
+        setStartWeid(String(data.next_weid));
+        setWeidNote(
+          `One more than the highest WEID saved in the app (${data.max_weid}).`,
+        );
+      } else {
+        setStartWeid("");
+        setWeidNote(
+          "No WEIDs are saved in the app yet. Enter the next WeeklyEntryID from the scoring database this one time.",
+        );
+      }
+    }
+
+    void lookup();
+    return () => {
+      cancelled = true;
+    };
+  }, [allowed, eventDate, supabase]);
+
   function resetResult() {
     setResult(null);
-    setImportText("");
+    setImportError("");
+    setImportSummary(null);
     setImported(false);
     setErrorMessage("");
   }
@@ -131,7 +201,8 @@ export default function EventAllocationApp() {
       return;
     }
     setErrorMessage("");
-    setImportText("");
+    setImportError("");
+    setImportSummary(null);
     setImported(false);
     setResult(
       allocateEvent({
@@ -154,28 +225,66 @@ export default function EventAllocationApp() {
     if (!result || blockers.length) return;
     setBusy(true);
     setErrorMessage("");
-    setImportText("");
+    setImportError("");
+    setImportSummary(null);
 
     const { entries, volunteers } = toImportPayload(result);
-    const { data, error } = await supabase.rpc("import_event", {
-      p_event_date: result.eventDate,
-      p_event_name: `WASPS Weekly Event - ${result.eventDate}`,
-      p_entries: entries,
-      p_volunteers: volunteers,
-      p_is_test: false,
-    });
-    setBusy(false);
 
-    if (error) {
-      setErrorMessage(error.message);
-      return;
+    // Send each volunteer's WASRA number as well, so they are matched to the
+    // member record even if their name is spelled differently.
+    const wasraByName = new Map<string, number>();
+    for (const s of result.shooters) {
+      if (s.wasra !== null && s.wasra > 0) {
+        wasraByName.set(`${s.fname.trim()} ${s.surname.trim()}`, s.wasra);
+      }
     }
-    if (data?.outcome !== "event_imported") {
-      setErrorMessage(data?.message ?? "The event was not imported.");
-      return;
+    const volunteersWithWasra = volunteers.map((v) => ({
+      ...v,
+      wasra_number: wasraByName.get(v.member_name.trim()) ?? null,
+    }));
+
+    try {
+      const { data, error } = await supabase.rpc("import_event", {
+        p_event_date: result.eventDate,
+        p_event_name: `WASPS Weekly Event - ${result.eventDate}`,
+        p_entries: entries,
+        p_volunteers: volunteersWithWasra,
+        p_is_test: false,
+      });
+
+      if (error) {
+        setImportError(explainImportError(error.message));
+      } else if (data?.outcome !== "event_imported") {
+        setImportError(
+          explainImportError(data?.message ?? "The event was not imported."),
+        );
+      } else {
+        setImported(true);
+        setImportSummary({
+          entries: Number(data.entries_imported ?? 0),
+          bays: Number(data.bay_assignments_imported ?? 0),
+          volunteers: Number(data.volunteers_imported ?? 0),
+          unmatchedMembers: Number(data.members_unmatched ?? 0),
+          unmatchedVolunteers: Array.isArray(data.volunteers_unmatched)
+            ? (data.volunteers_unmatched as string[])
+            : [],
+          duplicatesSkipped: Number(data.duplicate_entries_skipped ?? 0),
+        });
+      }
+    } catch (caught) {
+      setImportError(
+        caught instanceof Error
+          ? caught.message
+          : "The import could not be completed.",
+      );
+    } finally {
+      setBusy(false);
+      // The result is shown right beside the button; make sure it is in view.
+      window.setTimeout(
+        () => importRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }),
+        50,
+      );
     }
-    setImported(true);
-    setImportText(JSON.stringify(data, null, 2));
   }
 
   async function downloadPdf() {
@@ -268,7 +377,7 @@ export default function EventAllocationApp() {
 
         {dates.length > 0 ? (
           <label className="field">
-            <span>First WEID (the next WeeklyEntryID in the scoring database)</span>
+            <span>First WEID</span>
             <input
               type="number"
               min={1}
@@ -280,6 +389,7 @@ export default function EventAllocationApp() {
                 resetResult();
               }}
             />
+            {weidNote !== "" ? <small>{weidNote}</small> : null}
           </label>
         ) : null}
 
@@ -453,12 +563,36 @@ export default function EventAllocationApp() {
             </div>
           </section>
 
-          <section className="result info">
+          <section
+            className="result info"
+            ref={(node) => {
+              importRef.current = node;
+            }}
+          >
             <h3>Save to the app</h3>
             <p>
               Importing replaces any earlier import for this date. It is
               refused if the event already has sign-ins.
             </p>
+
+            {blockers.length > 0 ? (
+              <div className="result error">
+                <strong>
+                  Import is switched off until {blockers.length === 1 ? "this is" : "these are"} fixed in the CSV:
+                </strong>
+                <div className="list">
+                  {blockers.map((b, i) => (
+                    <div className="row" key={i}>
+                      <span>
+                        {b.row ? `Row ${b.row}: ` : ""}
+                        {b.message}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
             <div className="actions">
               <button
                 className="primary"
@@ -469,16 +603,41 @@ export default function EventAllocationApp() {
                 {busy ? "Importing..." : imported ? "Imported" : "Import event"}
               </button>
             </div>
+
+            {importError !== "" ? (
+              <div className="result error">
+                <strong>The import did not go through</strong>
+                <p>{importError}</p>
+              </div>
+            ) : null}
+
+            {importSummary !== null ? (
+              <div className="result success">
+                <strong>Import complete</strong>
+                <p>
+                  {importSummary.entries} entries, {importSummary.bays} bay
+                  assignments and {importSummary.volunteers} volunteer
+                  assignments saved.
+                </p>
+                {importSummary.unmatchedMembers > 0 ? (
+                  <p className="status">
+                    {importSummary.unmatchedMembers} entrant(s) were not matched
+                    to a member by WASRA number. They are saved but may need
+                    checking.
+                  </p>
+                ) : null}
+                {importSummary.unmatchedVolunteers.length > 0 ? (
+                  <p className="status">
+                    These volunteers could not be matched to a member and were
+                    NOT saved as volunteers:{" "}
+                    {importSummary.unmatchedVolunteers.join(", ")}.
+                  </p>
+                ) : null}
+                <Link href="/sign-in">Open sign-in</Link>
+              </div>
+            ) : null}
           </section>
         </>
-      ) : null}
-
-      {importText !== "" ? (
-        <section className="result success">
-          <h3>Import complete</h3>
-          <pre style={{ whiteSpace: "pre-wrap" }}>{importText}</pre>
-          <Link href="/sign-in">Open sign-in</Link>
-        </section>
       ) : null}
     </main>
   );
