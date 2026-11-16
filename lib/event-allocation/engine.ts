@@ -9,6 +9,7 @@ import {
   EXCLUDED_FROM_OFFICIAL_ROLES,
   FIXED_BAYS,
   NINETY_START_BAY,
+  RESERVED_VISITOR_BAYS,
   PAPER_PREFERRED_BAYS,
   VOL_ROLES,
 } from "./rules";
@@ -196,6 +197,11 @@ export function allocateEvent(opts: {
       const bay = FIXED_BAYS[shooters[i].wasra!];
       shooters[i].d[0] = bay;
       usedD1.add(bay);
+      // A fixed bay is theirs for all four details. Claim detail 2/4 now, so a
+      // busy week's overflow shooters can't be handed it first.
+      shooters[i].d[1] = bay;
+      usedD2.add(bay);
+      d2Owner.set(bay, i);
     }
   }
 
@@ -225,7 +231,7 @@ export function allocateEvent(opts: {
   }
 
   for (const i of idxAll) {
-    if (searchTaken.has(i) || isFixed(i)) continue;
+    if (searchTaken.has(i)) continue;
     const partner = findPartner(i);
     if (partner !== null) {
       sharePairs.push([i, partner]);
@@ -238,6 +244,35 @@ export function allocateEvent(opts: {
       );
     }
   }
+
+  // A pair involving a fixed-bay member is not allocated a new bay: the other
+  // person joins the fixed member's bay (fixed member details 1/3, partner
+  // details 2/4). If that can't work, the fixed member simply keeps their bay.
+  const fixedPairs: [number, number][] = [];
+  sharePairs = sharePairs.filter(([a, b]) => {
+    const fa = isFixed(a);
+    const fb = isFixed(b);
+    if (!fa && !fb) return true;
+
+    if (fa && fb) {
+      warn(
+        `${nameOf(a)} and ${nameOf(b)} both have fixed bays, so each keeps their own bay and they are not sharing.`,
+      );
+      return false;
+    }
+
+    const fixedIdx = fa ? a : b;
+    const otherIdx = fa ? b : a;
+    if (!shooters[fixedIdx].isElectronic || !shooters[otherIdx].isElectronic) {
+      warn(
+        `${nameOf(otherIdx)} asked to share with ${nameOf(fixedIdx)}, who has a fixed electronic bay. They can't share it (not both electronic), so ${nameOf(fixedIdx)} keeps the fixed bay and ${nameOf(otherIdx)} gets an individual bay.`,
+      );
+      return false;
+    }
+
+    fixedPairs.push([fixedIdx, otherIdx]);
+    return false;
+  });
 
   const sharedPartner = new Map<number, number>();
   for (const [a, b] of sharePairs) {
@@ -261,10 +296,13 @@ export function allocateEvent(opts: {
     ninetyUnits += 1; // a sharing pair needs only one bay
   }
 
+  const reservedBays = new Set(RESERVED_VISITOR_BAYS);
   const ninetyBlock: number[] = [];
   for (let b = NINETY_START_BAY; b >= 1 && ninetyBlock.length < ninetyUnits; b--) {
     if (fixedBayNumbers.has(b)) {
       warn(`Bay ${b} is a fixed allocation, so it was skipped when building the 90m block.`);
+    } else if (reservedBays.has(b)) {
+      warn(`Bay ${b} is reserved for visitors, so it was skipped when building the 90m block.`);
     } else {
       ninetyBlock.push(b);
     }
@@ -283,7 +321,9 @@ export function allocateEvent(opts: {
   }
 
   const blocked = (bay: number) =>
-    ninetyBlock.includes(bay) || (safetyBay !== null && bay === safetyBay);
+    ninetyBlock.includes(bay) ||
+    (safetyBay !== null && bay === safetyBay) ||
+    reservedBays.has(bay);
 
   function preferenceOrder(i: number): number[] {
     const s = shooters[i];
@@ -317,6 +357,15 @@ export function allocateEvent(opts: {
     assignedShared.add(a);
     assignedShared.add(b);
   };
+
+  // Partners who share a fixed-bay member's bay.
+  for (const [fixedIdx, otherIdx] of fixedPairs) {
+    const bay = FIXED_BAYS[shooters[fixedIdx].wasra!];
+    assignPair(fixedIdx, otherIdx, bay);
+    warn(
+      `${nameOf(otherIdx)} is sharing ${nameOf(fixedIdx)}'s fixed bay ${bay}: ${nameOf(fixedIdx)} shoots details 1 and 3, ${nameOf(otherIdx)} shoots details 2 and 4.`,
+    );
+  }
 
   // ---- Step 3b: a 50m paper shooter takes the safety buffer bay
   if (
@@ -440,7 +489,7 @@ export function allocateEvent(opts: {
     for (const b of s.d) if (b !== null) usedAll.add(b);
   }
   const availableBays = ALL_BAYS.filter(
-    (b) => !usedAll.has(b) && b !== safetyBay,
+    (b) => !usedAll.has(b) && b !== safetyBay && !reservedBays.has(b),
   );
 
   // ---- volunteers
