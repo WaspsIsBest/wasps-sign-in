@@ -24,6 +24,9 @@ export const ELECTRONIC_POOL = [...range(2, 16), ...range(21, 30)];
 // 90m shooters are allocated from this bay and work back (32, 31, 30, ...).
 export const NINETY_START_BAY = 32;
 
+// Bays held back for visitors. Automatic allocation never uses them; they can still be assigned by hand.
+export const RESERVED_VISITOR_BAYS = [17, 18, 19, 20];
+
 // First-choice bays for paper shooters who are not at 90m.
 export const PAPER_PREFERRED_BAYS = [1, 32];
 
