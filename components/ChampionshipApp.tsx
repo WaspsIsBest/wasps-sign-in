@@ -27,8 +27,8 @@ function pretty(iso: string | null) {
   return new Date(y, m - 1, d).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" });
 }
 
-const th = { textAlign: "left" as const, padding: "6px 10px", borderBottom: "2px solid #ffc400", color: "#ffc400" };
-const td = { padding: "6px 10px", borderBottom: "1px solid #2f2f2f" };
+const th = { textAlign: "left" as const, padding: "6px 10px", borderBottom: "2px solid #0b2540" };
+const td = { padding: "6px 10px", borderBottom: "1px solid #d5e2ef" };
 
 export default function ChampionshipApp() {
   const supabase = useMemo(() => createClient(), []);
@@ -77,9 +77,9 @@ export default function ChampionshipApp() {
     marginRight: 8,
     marginBottom: 8,
     borderRadius: 8,
-    border: "1px solid #ffc400",
-    background: active ? "#ffc400" : "#000",
-    color: active ? "#000" : "#ffc400",
+    border: "1px solid #0b5cad",
+    background: active ? "#0b5cad" : "#fff",
+    color: active ? "#fff" : "#0b5cad",
     font: "inherit",
     cursor: "pointer",
   });
