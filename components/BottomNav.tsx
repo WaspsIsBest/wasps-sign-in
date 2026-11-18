@@ -4,11 +4,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-type ActivePage = "scan" | "attendance" | "events" | "import";
+type ActivePage = "scan" | "attendance" | "events" | "import" | "champ";
 
 const navStyle = {
   display: "grid",
-  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+  gridTemplateColumns: "repeat(auto-fit, minmax(88px, 1fr))",
   gap: "6px",
   padding: "6px",
   width: "100%",
@@ -81,7 +81,11 @@ export default function BottomNav({ active }: { active: ActivePage }) {
         Attendance
       </Link>
 
-      {canManageEvents ? (
+      <Link href="/championship" style={styleFor("champ")}>
+        Championship
+      </Link>
+
+      {canManageEvents && (
         <>
           <Link href="/admin/events" style={styleFor("events")}>
             Events
@@ -90,11 +94,15 @@ export default function BottomNav({ active }: { active: ActivePage }) {
           <Link href="/admin/import-event" style={styleFor("import")}>
             Import
           </Link>
+
+          <Link href="/admin/load-scores" style={linkStyle}>
+            Load scores
+          </Link>
+
+          <Link href="/admin/load-weids" style={linkStyle}>
+            Load WEIDs
+          </Link>
         </>
-      ) : (
-        <a href="#top" style={linkStyle}>
-          Top
-        </a>
       )}
     </nav>
   );
