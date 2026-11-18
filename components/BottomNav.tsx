@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-type ActivePage = "scan" | "attendance" | "events" | "import" | "champ";
+type ActivePage = "scan" | "attendance" | "events" | "import" | "champ" | "other";
 
 const navStyle = {
   display: "grid",

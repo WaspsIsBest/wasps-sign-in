@@ -1,3 +1,4 @@
+import BottomNav from "@/components/BottomNav";
 import ChampionshipApp from "@/components/ChampionshipApp";
 
 export const metadata = {
@@ -10,7 +11,7 @@ export default function Page() {
       <header className="topbar">
         <div className="brand">WASPS Club Championship</div>
       </header>
-      <ChampionshipApp />
+      <ChampionshipApp /><BottomNav active="champ" />
     </div>
   );
 }

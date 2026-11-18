@@ -1,3 +1,4 @@
+import BottomNav from "@/components/BottomNav";
 import EventsAdminApp from "@/components/EventsAdminApp";
 
 export default function EventsAdminPage() {
@@ -14,7 +15,7 @@ export default function EventsAdminPage() {
           </a>
         </div>
       </header>
-      <EventsAdminApp />
+      <EventsAdminApp /><BottomNav active="events" />
     </div>
   );
 }

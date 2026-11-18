@@ -1,3 +1,4 @@
+import BottomNav from "@/components/BottomNav";
 import ScoreLoaderApp from "@/components/ScoreLoaderApp";
 
 export default function Page() {
@@ -6,7 +7,7 @@ export default function Page() {
       <header className="topbar">
         <div className="brand">WASPS Event Administration</div>
       </header>
-      <ScoreLoaderApp />
+      <ScoreLoaderApp /><BottomNav active="other" />
     </div>
   );
 }
