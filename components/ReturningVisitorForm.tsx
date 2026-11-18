@@ -111,7 +111,7 @@ export default function ReturningVisitorForm({ eventId, onCancel, onCompleted }:
               key={visitor.visitor_id}
               type="button"
               className="row"
-              style={{ width: "100%", background: "white", borderLeft: 0, borderRight: 0, borderTop: 0, textAlign: "left" }}
+              style={{ width: "100%", borderLeft: 0, borderRight: 0, borderTop: 0, textAlign: "left" }}
               onClick={() => setSelected(visitor)}
             >
               <span className="row-main">
