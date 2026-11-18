@@ -95,6 +95,10 @@ export default function BottomNav({ active }: { active: ActivePage }) {
             Import
           </Link>
 
+          <Link href="/admin/start-lists" style={linkStyle}>
+            Start lists
+          </Link>
+
           <Link href="/admin/load-scores" style={linkStyle}>
             Load scores
           </Link>
