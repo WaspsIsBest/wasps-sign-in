@@ -25,12 +25,16 @@ begin
                    we.distance,
                    case when we.championship_score_eligible then 'Y' else 'N' end as cscore,
                    we.entry_type,
+                   we.source_ticket_number as booking_id,
+                   cm.fkcid,
+                   cm.mcid as fkmcid,
                    (select ba.bay_number from public.bay_assignments ba where ba.weekly_entry_id = we.id and ba.detail_number = 1 limit 1) as d1,
                    (select ba.bay_number from public.bay_assignments ba where ba.weekly_entry_id = we.id and ba.detail_number = 2 limit 1) as d2,
                    (select ba.bay_number from public.bay_assignments ba where ba.weekly_entry_id = we.id and ba.detail_number = 3 limit 1) as d3,
                    (select ba.bay_number from public.bay_assignments ba where ba.weekly_entry_id = we.id and ba.detail_number = 4 limit 1) as d4
             from public.weekly_entries we
             join public.events ev on ev.id = we.event_id
+            left join public.class_mappings cm on cm.id = we.class_mapping_id
             where we.weid is not null
               and ev.event_date between p_from and p_to
         ) x

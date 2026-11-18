@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 
 type Row = {
   weid: number; event_date: string; wasra: number | null; name: string;
-  target_type: string | null; distance: string | null; cscore: string; entry_type: string | null;
+  target_type: string | null; distance: string | null; cscore: string; entry_type: string | null; booking_id: string | null; fkcid: number | null; fkmcid: number | null;
   d1: number | null; d2: number | null; d3: number | null; d4: number | null;
 };
 
@@ -31,7 +31,7 @@ export default function WeidExportApp() {
   function sheetRows() {
     return (rows ?? []).map((r) => ({
       WeeklyEntryID: r.weid, EventDate: r.event_date, FKMEMID: r.wasra, Name: r.name,
-      TargetType: r.target_type, Distance: r.distance, CScore: r.cscore, EntryType: r.entry_type,
+      TargetType: r.target_type, Distance: r.distance, CScore: r.cscore, EntryType: r.entry_type, BookingID: r.booking_id, FKCID: r.fkcid, FKMCID: r.fkmcid,
       D1: r.d1, D2: r.d2, D3: r.d3, D4: r.d4,
     }));
   }
@@ -46,7 +46,7 @@ export default function WeidExportApp() {
     <main className="main">
       <h1>Export WEIDs</h1>
       <p className="muted">
-        Downloads every entry that has a WEID in the date range, with its WASRA number, event date and bays,
+        Downloads every entry that has a WEID in the date range, with its WASRA number, event date, class (FKCID, FKMCID) and bays,
         for loading into the Access database. The WEID is the Access WeeklyEntryID.
       </p>
       <label className="field"><span>From</span><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
