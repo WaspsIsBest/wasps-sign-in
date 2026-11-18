@@ -102,6 +102,10 @@ export default function BottomNav({ active }: { active: ActivePage }) {
           <Link href="/admin/load-weids" style={linkStyle}>
             Load WEIDs
           </Link>
+
+          <Link href="/admin/export-weids" style={linkStyle}>
+            Export WEIDs
+          </Link>
         </>
       )}
     </nav>
