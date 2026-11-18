@@ -9,12 +9,12 @@ type Row = {
   d1: number | null; d2: number | null; d3: number | null; d4: number | null;
 };
 
-const today = () => new Date().toISOString().slice(0, 10);
+const defaultTo = () => new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10);
 
 export default function WeidExportApp() {
   const supabase = useMemo(() => createClient(), []);
   const [from, setFrom] = useState("2026-02-01");
-  const [to, setTo] = useState(today());
+  const [to, setTo] = useState(defaultTo());
   const [rows, setRows] = useState<Row[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
