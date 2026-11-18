@@ -24,9 +24,9 @@ const VOLUNTEER_ROLES = ["Range Officer", "Trainee Range Officer", "Visitor Assi
 const selectStyle = {
   width: "100%",
   padding: 13,
-  border: "1px solid #9fb3c8",
+  border: "1px solid #5a5a5a",
   borderRadius: 9,
-  background: "#fff",
+  background: "#000", color: "#fff",
   font: "inherit",
 } as const;
 

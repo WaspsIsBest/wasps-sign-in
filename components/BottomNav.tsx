@@ -22,8 +22,8 @@ const linkStyle = {
   minHeight: "38px",
   padding: "7px 4px",
   borderRadius: "10px",
-  backgroundColor: "#edf3f9",
-  color: "#082f49",
+  backgroundColor: "#1a1a1a",
+  color: "#f5f5f5",
   fontSize: "14px",
   fontWeight: 700,
   lineHeight: 1.1,
@@ -34,8 +34,8 @@ const linkStyle = {
 
 const activeLinkStyle = {
   ...linkStyle,
-  backgroundColor: "#dce9f5",
-  color: "#005a9c",
+  backgroundColor: "#ffc400",
+  color: "#000",
 } as const;
 
 export default function BottomNav({ active }: { active: ActivePage }) {
