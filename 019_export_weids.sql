@@ -7,12 +7,30 @@ set search_path = ''
 as $$
 declare
     v_role text;
+    v_next integer;
+    r record;
 begin
     v_role := public.current_staff_role();
     if v_role is null or v_role not in ('admin', 'organiser') then
         return jsonb_build_object('outcome', 'not_authorised',
             'message', 'Only an administrator or organiser may export WEIDs.');
     end if;
+
+    -- Late entries added on the night have no WEID until one is assigned.
+    -- Give them the next free ones (same rule as the start list page) so the
+    -- export is complete.
+    perform pg_advisory_xact_lock(7770019);
+    select coalesce(max(weid), 0) + 1 into v_next from public.weekly_entries;
+    for r in
+        select we.id
+        from public.weekly_entries we
+        join public.events ev on ev.id = we.event_id
+        where we.weid is null and ev.event_date between p_from and p_to
+        order by ev.event_date, we.id
+    loop
+        update public.weekly_entries set weid = v_next where id = r.id;
+        v_next := v_next + 1;
+    end loop;
 
     return jsonb_build_object('outcome', 'ok', 'rows', coalesce((
         select jsonb_agg(x order by x.event_date, x.weid)
