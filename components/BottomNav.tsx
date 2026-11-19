@@ -41,6 +41,7 @@ const activeLinkStyle = {
 export default function BottomNav({ active }: { active: ActivePage }) {
   const [canManageEvents, setCanManageEvents] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [memberOnly, setMemberOnly] = useState(false);
 
   useEffect(() => {
     async function loadRole() {
@@ -57,6 +58,7 @@ export default function BottomNav({ active }: { active: ActivePage }) {
         .eq("user_id", user.id)
         .maybeSingle();
 
+      setMemberOnly(!data?.is_active);
       setIsAdmin(Boolean(data?.is_active && data.role === "admin"));
       setCanManageEvents(
         Boolean(
@@ -71,6 +73,15 @@ export default function BottomNav({ active }: { active: ActivePage }) {
 
   function styleFor(page: ActivePage) {
     return active === page ? activeLinkStyle : linkStyle;
+  }
+
+  if (memberOnly) {
+    return (
+      <nav className="bottom-nav" style={{ display: "flex", gap: 8, padding: 8 }}>
+        <Link href="/member" style={styleFor("scan")}>Enter event</Link>
+        <Link href="/championship" style={styleFor("champ")}>Championship</Link>
+      </nav>
+    );
   }
 
   return (

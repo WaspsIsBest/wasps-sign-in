@@ -40,7 +40,9 @@ function prettyDate(iso: string) {
   });
 }
 
-export default function EntryForm() {
+export type MemberInfo = { wasra_number: number; first_name: string; surname: string };
+
+export default function EntryForm({ member, onEntered }: { member?: MemberInfo; onEntered?: () => void }) {
   const supabase = useMemo(() => createClient(), []);
 
   const [loading, setLoading] = useState(true);
@@ -123,7 +125,18 @@ export default function EntryForm() {
     setBusy(true);
 
     try {
-      const { data, error } = await supabase.rpc("submit_entry", {
+      const common = {
+        p_event_id: Number(eventId),
+        p_target_type: targetType,
+        p_distance: distance,
+        p_shooting_class: shootingClass,
+        p_position: isBenchrest ? "Benchrest" : position,
+        p_volunteer_role: volunteerRole || null,
+        p_sharing_with: sharingWith.trim() || null,
+      };
+      const { data, error } = member
+        ? await supabase.rpc("submit_member_entry", common)
+        : await supabase.rpc("submit_entry", {
         p_event_id: Number(eventId),
         p_is_visitor: isVisitor,
         p_wasra: isVisitor ? null : wasra.trim(),
@@ -146,8 +159,9 @@ export default function EntryForm() {
       }
 
       if (data?.outcome === "entry_received") {
+        onEntered?.();
         setReceived({
-          name: data.name ?? (isVisitor ? `${firstName} ${surname}` : surname),
+          name: member ? `${member.first_name} ${member.surname}` : (data.name ?? (isVisitor ? `${firstName} ${surname}` : surname)),
           eventDate: data.event_date ?? selectedEvent?.event_date ?? "",
         });
         return;
@@ -165,15 +179,7 @@ export default function EntryForm() {
     }
   }
 
-  return (
-    <div className="shell">
-      <header className="topbar">
-        <div className="brand">WASPS Weekly Event Entry</div>
-        {selectedEvent ? (
-          <div className="event-name">{prettyDate(selectedEvent.event_date)}</div>
-        ) : null}
-      </header>
-
+  const body = (
       <main className="main">
         {loading ? <p className="muted">Loading...</p> : null}
 
@@ -206,9 +212,11 @@ export default function EntryForm() {
               event.
             </p>
             <div className="actions">
-              <button className="secondary" type="button" onClick={resetForNextEntry}>
-                Enter someone else
-              </button>
+              {member ? null : (
+                <button className="secondary" type="button" onClick={resetForNextEntry}>
+                  Enter someone else
+                </button>
+              )}
             </div>
           </div>
         ) : null}
@@ -235,7 +243,13 @@ export default function EntryForm() {
               </label>
             ) : null}
 
-            <div className="field">
+            {member ? (
+              <p className="muted">
+                Entering as <b>{member.first_name} {member.surname}</b> (WASRA {member.wasra_number})
+              </p>
+            ) : null}
+
+            {!member ? (<div className="field">
               <span>I am a</span>
               <label style={{ display: "inline-block", marginRight: 18 }}>
                 <input
@@ -255,9 +269,9 @@ export default function EntryForm() {
                 />{" "}
                 Visitor
               </label>
-            </div>
+            </div>) : null}
 
-            {!isVisitor ? (
+            {member ? null : !isVisitor ? (
               <>
                 <label className="field">
                   <span>WASRA membership number</span>
@@ -435,6 +449,19 @@ export default function EntryForm() {
           </form>
         ) : null}
       </main>
+  );
+
+  if (member) return body;
+
+  return (
+    <div className="shell">
+      <header className="topbar">
+        <div className="brand">WASPS Weekly Event Entry</div>
+        {selectedEvent ? (
+          <div className="event-name">{prettyDate(selectedEvent.event_date)}</div>
+        ) : null}
+      </header>
+      {body}
     </div>
   );
 }

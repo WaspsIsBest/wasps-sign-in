@@ -43,7 +43,7 @@ export default function ChampionshipApp() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
-        window.location.href = "/login";
+        window.location.href = "/member";
         return;
       }
       const { data: res, error } = await supabase.rpc("championship_standings", { p_season: SEASON });
