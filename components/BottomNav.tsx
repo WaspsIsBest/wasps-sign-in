@@ -58,7 +58,13 @@ export default function BottomNav({ active }: { active: ActivePage }) {
         .eq("user_id", user.id)
         .maybeSingle();
 
-      setMemberOnly(!data?.is_active);
+      const notStaff = !data?.is_active;
+      setMemberOnly(notStaff);
+      // A signed-in person who is not staff only gets the member area.
+      if (notStaff && active !== "champ") {
+        window.location.replace("/member");
+        return;
+      }
       setIsAdmin(Boolean(data?.is_active && data.role === "admin"));
       setCanManageEvents(
         Boolean(
