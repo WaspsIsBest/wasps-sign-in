@@ -3,6 +3,7 @@ import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { parseEntryCsv, pickDefaultDate } from "@/lib/event-allocation/csv";
+import { entriesToParsed, type FormEntry } from "@/lib/event-allocation/entries";
 import {
   allocateEvent,
   importBlockers,
@@ -72,6 +73,10 @@ export default function EventAllocationApp() {
   const [importSummary, setImportSummary] = useState<ImportSummary | null>(null);
   const importRef = useRef<HTMLElement | null>(null);
   const [imported, setImported] = useState(false);
+  const [formEvents, setFormEvents] = useState<{ id: number; event_date: string; entry_count: number }[]>([]);
+  const [formDate, setFormDate] = useState("");
+  const [formNote, setFormNote] = useState("");
+  const [csvParsed, setCsvParsed] = useState<ParsedCsv | null>(null);
 
   useEffect(() => {
     async function init() {
@@ -164,10 +169,51 @@ export default function EventAllocationApp() {
     setErrorMessage("");
   }
 
+  useEffect(() => {
+    if (!allowed) return;
+    (async () => {
+      const { data } = await supabase.rpc("admin_list_entry_events");
+      if (data?.outcome === "ok") {
+        const list = (data.events as { id: number; event_date: string; entry_count: number }[]).filter((e) => e.entry_count > 0);
+        setFormEvents(list);
+        if (list.length) setFormDate(list[0].event_date);
+      }
+    })();
+  }, [allowed, supabase]);
+
+  // Combine the TryBooking CSV (if loaded) with entries made on the online
+  // form for the chosen date. The CSV comes first, so if someone appears in
+  // both, the allocation keeps their TryBooking entry and warns.
+  async function addFormEntries() {
+    const ev = formEvents.find((e) => e.event_date === formDate);
+    if (!ev) return;
+    setBusy(true);
+    setErrorMessage("");
+    resetResult();
+    const { data, error } = await supabase.rpc("list_event_entries", { p_event_id: ev.id });
+    setBusy(false);
+    if (error || data?.outcome !== "ok") {
+      setErrorMessage(error?.message ?? data?.message ?? "Could not load the online form entries.");
+      return;
+    }
+    const entries = data.entries as FormEntry[];
+    const form = entriesToParsed(formDate, entries);
+    const base = csvParsed;
+    const rows = [...(base?.rows ?? []), ...form.rows];
+    const merged: ParsedCsv = { rows, issues: [...(base?.issues ?? []), ...form.issues] };
+    const found = [...new Set(rows.map((r) => r.eventDate).filter(Boolean))].sort();
+    setParsed(merged);
+    setDates(found);
+    setEventDate(formDate);
+    setFormNote(`${entries.length} online form ${entries.length === 1 ? "entry" : "entries"} added${base ? ` to ${base.rows.length} TryBooking rows` : ""}.`);
+  }
+
   async function onFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null;
     resetResult();
     setParsed(null);
+    setCsvParsed(null);
+    setFormNote("");
     setDates([]);
     setEventDate("");
     if (!file) return;
@@ -179,6 +225,8 @@ export default function EventAllocationApp() {
         ...new Set(p.rows.map((r) => r.eventDate).filter(Boolean)),
       ].sort();
       setParsed(p);
+      setCsvParsed(p);
+      setFormNote("");
       setDates(found);
       setEventDate(pickDefaultDate(found, localTodayIso()));
       if (!found.length && !p.issues.some((i) => i.severity === "error")) {
@@ -339,7 +387,7 @@ export default function EventAllocationApp() {
   return (
     <main className="main">
       <div className="section-head">
-        <h2>Allocate event from TryBooking CSV</h2>
+        <h2>Allocate event from TryBooking CSV and/or online form</h2>
         <Link href="/admin/import-event">Import from Excel files</Link>
       </div>
 
@@ -355,6 +403,23 @@ export default function EventAllocationApp() {
           <span>TryBooking entry list (CSV)</span>
           <input type="file" accept=".csv,text/csv" onChange={onFile} />
         </label>
+
+        {formEvents.length > 0 ? (
+          <div className="field">
+            <span>Online form entries (beta)</span>
+            <select value={formDate} onChange={(e) => setFormDate(e.target.value)}>
+              {formEvents.map((e) => (
+                <option key={e.id} value={e.event_date}>
+                  {longDate(e.event_date)} ({e.entry_count} entries)
+                </option>
+              ))}
+            </select>
+            <button className="secondary" type="button" disabled={busy || !formDate} onClick={addFormEntries}>
+              {csvParsed ? "Add online form entries to the CSV" : "Use online form entries only"}
+            </button>
+            {formNote !== "" ? <small>{formNote}</small> : null}
+          </div>
+        ) : null}
 
         {dates.length > 0 ? (
           <label className="field">

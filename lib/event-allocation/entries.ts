@@ -8,7 +8,7 @@ export type FormEntry = {
   is_visitor: boolean;
   wasra_number: number | null;
   // Members: their WASRA number. Visitors: a stable temporary number
-  // (900000 + entry id) so the scoring system and import have something valid.
+  // (950000 + entry id) so the scoring system and import have something valid.
   effective_number: number;
   first_name: string;
   surname: string;
