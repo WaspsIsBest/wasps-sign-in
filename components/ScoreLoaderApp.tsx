@@ -31,7 +31,7 @@ export default function ScoreLoaderApp() {
         .eq("user_id", user.id)
         .maybeSingle();
       setAllowed(
-        Boolean(data?.is_active && (data.role === "admin" || data.role === "organiser")),
+        Boolean(data?.is_active && data.role === "admin"),
       );
     }
     void init();
@@ -84,7 +84,7 @@ export default function ScoreLoaderApp() {
     return (
       <main className="main">
         <h2>Not authorised</h2>
-        <p>Only administrators and organisers can load scores.</p>
+        <p>Only administrators can load scores.</p>
         <Link href="/sign-in">Return to sign-in</Link>
       </main>
     );

@@ -67,6 +67,7 @@ function shortTime(value: string | null) {
 
 export default function EventsAdminApp() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [events, setEvents] = useState<EventRow[]>([]);
   const [filter, setFilter] = useState<"upcoming" | "open" | "history" | "all">("upcoming");
   const [showCreate, setShowCreate] = useState(false);
@@ -109,6 +110,7 @@ export default function EventsAdminApp() {
     const canManage = Boolean(
       profile?.is_active && (profile.role === "admin" || profile.role === "organiser"),
     );
+    setIsAdmin(Boolean(profile?.is_active && profile.role === "admin"));
     setAllowed(canManage);
     if (!canManage) return;
 
@@ -272,11 +274,13 @@ const shownEvents = useMemo(() => {
       <div className="section-head">
         <div>
           <h2>Calendar Events</h2>
-          <p className="muted">Create, select, open, close and review WASPS events.</p>
+          <p className="muted">{isAdmin ? "Create, select, open, close and review WASPS events." : "Select, open and close sign-in for WASPS events."}</p>
         </div>
-        <button className="primary" type="button" onClick={() => setShowCreate((value) => !value)}>
-          {showCreate ? "Cancel" : "Create event"}
-        </button>
+        {isAdmin ? (
+          <button className="primary" type="button" onClick={() => setShowCreate((value) => !value)}>
+            {showCreate ? "Cancel" : "Create event"}
+          </button>
+        ) : null}
       </div>
 
       {errorMessage !== "" ? <section className="result error"><strong>Error</strong><p>{errorMessage}</p></section> : null}

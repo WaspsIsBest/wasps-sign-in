@@ -62,7 +62,7 @@ export default function WeidBackfillApp() {
         .eq("user_id", user.id)
         .maybeSingle();
       setAllowed(
-        Boolean(data?.is_active && (data.role === "admin" || data.role === "organiser")),
+        Boolean(data?.is_active && data.role === "admin"),
       );
     }
     void init();
@@ -119,7 +119,7 @@ export default function WeidBackfillApp() {
     return (
       <main className="main">
         <h2>Not authorised</h2>
-        <p>Only administrators and organisers can load WEIDs.</p>
+        <p>Only administrators can load WEIDs.</p>
         <Link href="/sign-in">Return to sign-in</Link>
       </main>
     );

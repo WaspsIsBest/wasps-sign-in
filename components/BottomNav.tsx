@@ -40,6 +40,7 @@ const activeLinkStyle = {
 
 export default function BottomNav({ active }: { active: ActivePage }) {
   const [canManageEvents, setCanManageEvents] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     async function loadRole() {
@@ -56,6 +57,7 @@ export default function BottomNav({ active }: { active: ActivePage }) {
         .eq("user_id", user.id)
         .maybeSingle();
 
+      setIsAdmin(Boolean(data?.is_active && data.role === "admin"));
       setCanManageEvents(
         Boolean(
           data?.is_active &&
@@ -107,17 +109,23 @@ export default function BottomNav({ active }: { active: ActivePage }) {
             Start lists
           </Link>
 
+          {isAdmin && (
           <Link href="/admin/load-scores" style={linkStyle}>
             Load scores
           </Link>
+          )}
 
+          {isAdmin && (
           <Link href="/admin/load-weids" style={linkStyle}>
             Load WEIDs
           </Link>
+          )}
 
+          {isAdmin && (
           <Link href="/admin/export-weids" style={linkStyle}>
             Export WEIDs
           </Link>
+          )}
         </>
       )}
     </nav>
