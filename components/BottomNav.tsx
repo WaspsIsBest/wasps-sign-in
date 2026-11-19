@@ -95,6 +95,10 @@ export default function BottomNav({ active }: { active: ActivePage }) {
             Online entries
           </Link>
 
+          <Link href="/admin/allocate-event" style={linkStyle}>
+            Allocate
+          </Link>
+
           <Link href="/admin/import-event" style={styleFor("import")}>
             Import
           </Link>
