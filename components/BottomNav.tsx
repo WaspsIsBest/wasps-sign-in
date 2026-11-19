@@ -91,6 +91,10 @@ export default function BottomNav({ active }: { active: ActivePage }) {
             Events
           </Link>
 
+          <Link href="/admin/entries" style={linkStyle}>
+            Online entries
+          </Link>
+
           <Link href="/admin/import-event" style={styleFor("import")}>
             Import
           </Link>
