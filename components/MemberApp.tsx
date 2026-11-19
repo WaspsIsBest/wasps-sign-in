@@ -93,6 +93,19 @@ export default function MemberApp() {
     }
   }
 
+  async function doResend() {
+    if (!email.trim()) { setError("Type your email address above first."); return; }
+    setBusy(true); setError(""); setInfo("");
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: email.trim(),
+      options: { emailRedirectTo: `${window.location.origin}/member` },
+    });
+    setBusy(false);
+    if (error) { setError(error.message); return; }
+    setInfo("Another confirmation email has been sent. It can take a minute. Check spam too.");
+  }
+
   async function doForgot(e: FormEvent) {
     e.preventDefault(); setBusy(true); setError(""); setInfo("");
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
@@ -183,6 +196,7 @@ export default function MemberApp() {
             {mode !== "signin" && <button className="secondary" type="button" onClick={() => { setMode("signin"); setError(""); setInfo(""); }}>Back to sign in</button>}
             {mode === "signin" && <button className="secondary" type="button" onClick={() => { setMode("signup"); setError(""); setInfo(""); }}>Create a login</button>}
             {mode === "signin" && <button className="secondary" type="button" onClick={() => { setMode("forgot"); setError(""); setInfo(""); }}>Forgot password</button>}
+            {mode === "signin" && <button className="secondary" type="button" onClick={doResend} disabled={busy}>Resend confirmation email</button>}
           </div>
         </main>
       </div>
