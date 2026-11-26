@@ -20,6 +20,7 @@ export default function MemberApp() {
   const [ready, setReady] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   const [recovery, setRecovery] = useState(false);
+  const [welcome, setWelcome] = useState(false);
   const [member, setMember] = useState<MemberInfo | null | undefined>(undefined);
   const [entries, setEntries] = useState<MyEntry[]>([]);
   const [entryVersion, setEntryVersion] = useState(0);
@@ -49,10 +50,36 @@ export default function MemberApp() {
   }, [supabase]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    // Arriving from an invite email: sign them in from the link, then ask for a password.
+    async function acceptInvite(): Promise<boolean> {
+      const query = new URLSearchParams(window.location.search);
+      const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const tokenHash = query.get("token_hash");
+      const isInvite = query.get("type") === "invite" || hash.get("type") === "invite";
+      if (!isInvite) return false;
+      let ok = false;
+      if (tokenHash) {
+        const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: "invite" });
+        ok = !error;
+      } else if (hash.get("access_token") && hash.get("refresh_token")) {
+        const { error } = await supabase.auth.setSession({
+          access_token: hash.get("access_token")!,
+          refresh_token: hash.get("refresh_token")!,
+        });
+        ok = !error;
+      }
+      window.history.replaceState(null, "", window.location.pathname);
+      if (ok) { setWelcome(true); setRecovery(true); }
+      else setError("That invite link has expired or was already used. Use Forgot password below with the same email to set your password.");
+      return ok;
+    }
+
+    void (async () => {
+      await acceptInvite();
+      const { data } = await supabase.auth.getSession();
       setSignedIn(Boolean(data.session));
       setReady(true);
-    });
+    })();
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY") setRecovery(true);
       setSignedIn(Boolean(session));
@@ -124,7 +151,9 @@ export default function MemberApp() {
     const { error } = await supabase.auth.updateUser({ password });
     setBusy(false);
     if (error) { setError(error.message); return; }
-    setRecovery(false); setPassword(""); setPassword2(""); setInfo("Password changed.");
+    setRecovery(false); setPassword(""); setPassword2("");
+    setInfo(welcome ? "Password saved. Use this email and password to sign in next time." : "Password changed.");
+    setWelcome(false);
   }
 
   async function doLink(e: FormEvent) {
@@ -161,7 +190,8 @@ export default function MemberApp() {
     return (
       <div className="shell">{header}
         <main className="main">
-          <h2>Choose a new password</h2>
+          <h2>{welcome ? "Welcome to WASPS online entry" : "Choose a new password"}</h2>
+          {welcome && <p className="muted">Choose a password (at least 8 characters). You will use your email and this password to sign in.</p>}
           <form onSubmit={doNewPassword}>
             <label className="field"><span>New password</span><input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></label>
             <label className="field"><span>Repeat password</span><input type="password" autoComplete="new-password" value={password2} onChange={(e) => setPassword2(e.target.value)} required /></label>

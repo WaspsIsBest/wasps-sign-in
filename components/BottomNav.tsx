@@ -143,6 +143,12 @@ export default function BottomNav({ active }: { active: ActivePage }) {
             Export WEIDs
           </Link>
           )}
+
+          {isAdmin && (
+          <Link href="/admin/invite-members" style={linkStyle}>
+            Invite members
+          </Link>
+          )}
         </>
       )}
     </nav>
