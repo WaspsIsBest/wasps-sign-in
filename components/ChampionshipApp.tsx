@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-const SEASON = 2026;
+// 2026 is the copy loaded from Access (018); 2027 on comes from the scores table (028).
+const SEASONS = [2027, 2026];
 const CLASSES = ["Benchrest", "F-Open", "Modified", "Sporter"];
 type View = "50m" | "dual" | "90m";
 
@@ -34,6 +35,7 @@ export default function ChampionshipApp() {
   const supabase = useMemo(() => createClient(), []);
   const [state, setState] = useState<"loading" | "error" | "ready">("loading");
   const [data, setData] = useState<Standings | null>(null);
+  const [SEASON, setSeason] = useState(SEASONS[0]);
   const [cls, setCls] = useState("Benchrest");
   const [view, setView] = useState<View>("50m");
 
@@ -46,8 +48,12 @@ export default function ChampionshipApp() {
         window.location.href = "/member";
         return;
       }
-      const { data: res, error } = await supabase.rpc("championship_standings", { p_season: SEASON });
+      setState("loading");
+      const { data: res, error } = SEASON >= 2027
+        ? await supabase.rpc("season_standings", { p_season: SEASON })
+        : await supabase.rpc("championship_standings", { p_season: SEASON });
       if (error || res?.outcome !== "ok") {
+        if (SEASON >= 2027) { setSeason(2026); return; } // scores table not set up yet
         setState("error");
         return;
       }
@@ -55,7 +61,7 @@ export default function ChampionshipApp() {
       setState("ready");
     }
     void load();
-  }, [supabase]);
+  }, [supabase, SEASON]);
 
   if (state === "loading") return <main className="main">Loading...</main>;
   if (state === "error" || !data) {
@@ -87,8 +93,13 @@ export default function ChampionshipApp() {
   return (
     <main className="main">
       <h1>{SEASON} Club Championship</h1>
+      <div>
+        {SEASONS.map((y) => (
+          <button key={y} type="button" style={tab(SEASON === y)} onClick={() => setSeason(y)}>{y}</button>
+        ))}
+      </div>
       <p className="muted">
-        Scores up to {pretty(data.last_night)}. Provisional until the end of the
+        {data.last_night ? `Scores up to ${pretty(data.last_night)}.` : "No championship scores yet for this season."} Provisional until the end of the
         season. 50m: your best 10 scores (maximum 2,180). 90m: your best 5
         (maximum 1,000). Dual range: both added.
       </p>

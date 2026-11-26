@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-type ActivePage = "scan" | "attendance" | "events" | "import" | "champ" | "other";
+type ActivePage = "scan" | "attendance" | "events" | "import" | "champ" | "results" | "myscores" | "scores" | "other";
 
 const navStyle = {
   display: "grid",
@@ -61,7 +61,7 @@ export default function BottomNav({ active }: { active: ActivePage }) {
       const notStaff = !data?.is_active;
       setMemberOnly(notStaff);
       // A signed-in person who is not staff only gets the member area.
-      if (notStaff && active !== "champ") {
+      if (notStaff && !["champ", "results", "myscores"].includes(active)) {
         window.location.replace("/member");
         return;
       }
@@ -85,6 +85,8 @@ export default function BottomNav({ active }: { active: ActivePage }) {
     return (
       <nav className="bottom-nav" style={{ display: "flex", gap: 8, padding: 8 }}>
         <Link href="/member" style={styleFor("scan")}>Enter event</Link>
+        <Link href="/results" style={styleFor("results")}>Results</Link>
+        <Link href="/my-scores" style={styleFor("myscores")}>My scores</Link>
         <Link href="/championship" style={styleFor("champ")}>Championship</Link>
       </nav>
     );
@@ -102,6 +104,10 @@ export default function BottomNav({ active }: { active: ActivePage }) {
 
       <Link href="/championship" style={styleFor("champ")}>
         Championship
+      </Link>
+
+      <Link href="/results" style={styleFor("results")}>
+        Results
       </Link>
 
       {canManageEvents && (
@@ -126,9 +132,13 @@ export default function BottomNav({ active }: { active: ActivePage }) {
             Start lists
           </Link>
 
+          <Link href="/admin/scores" style={styleFor("scores")}>
+            Scores
+          </Link>
+
           {isAdmin && (
           <Link href="/admin/load-scores" style={linkStyle}>
-            Load scores
+            2026 champ copy
           </Link>
           )}
 
