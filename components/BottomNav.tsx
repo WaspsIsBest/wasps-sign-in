@@ -8,7 +8,7 @@ type ActivePage = "scan" | "attendance" | "events" | "import" | "champ" | "resul
 
 const navStyle = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(88px, 1fr))",
+  gridTemplateColumns: "repeat(auto-fill, minmax(104px, 1fr))",
   gap: "6px",
   padding: "6px",
   width: "100%",
@@ -19,17 +19,18 @@ const linkStyle = {
   alignItems: "center",
   justifyContent: "center",
   minWidth: 0,
-  minHeight: "38px",
-  padding: "7px 4px",
+  minHeight: "42px",
+  padding: "6px 6px",
   borderRadius: "10px",
   backgroundColor: "#1a1a1a",
   color: "#f5f5f5",
-  fontSize: "14px",
+  fontSize: "13px",
   fontWeight: 700,
-  lineHeight: 1.1,
+  lineHeight: 1.15,
   textAlign: "center",
   textDecoration: "none",
-  whiteSpace: "nowrap",
+  whiteSpace: "normal",
+  overflowWrap: "anywhere",
 } as const;
 
 const activeLinkStyle = {
@@ -138,7 +139,7 @@ export default function BottomNav({ active }: { active: ActivePage }) {
 
           {isAdmin && (
           <Link href="/admin/load-scores" style={linkStyle}>
-            2026 champ copy
+            2026 champ
           </Link>
           )}
 
