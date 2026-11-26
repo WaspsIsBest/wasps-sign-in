@@ -3,12 +3,13 @@ import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { longDate } from "@/lib/event-allocation/outputs";
 import MonthlyChart, { type Series } from "@/components/MonthlyChart";
+import { rankResults, weeklyResultsPdf } from "@/lib/scores/weekly-report";
 
 type Ev = { id: number; event_date: string; scores: number };
 type Row = {
   weekly_entry_id: number; wasra: number | null; name: string; distance: string; class_name: string;
   target_type: string; position: string | null; details: Record<string, { score: number; inners: number | null }>;
-  best: number; total: number; shot: number;
+  best: number; total: number; shot: number; championship?: boolean; ordered?: number[];
 };
 type Monthly = { month: string; distance: string; class_name: string; target_type: string; avg: number; best: number; scores: number; shooters: number };
 
@@ -25,6 +26,9 @@ export default function WeeklyResultsApp() {
   const [dist, setDist] = useState("50m");
   const [tt, setTt] = useState("E");
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [eventDate, setEventDate] = useState("");
+  const [printing, setPrinting] = useState(false);
+  const [pickError, setPickError] = useState("");
 
   useEffect(() => {
     async function init() {
@@ -44,7 +48,7 @@ export default function WeeklyResultsApp() {
   useEffect(() => {
     if (eventId === null) return;
     void supabase.rpc("weekly_results", { p_event_id: eventId }).then(({ data }) => {
-      if (data?.outcome === "ok") setRows(data.rows as Row[]);
+      if (data?.outcome === "ok") { setRows(data.rows as Row[]); setEventDate(data.event_date); }
     });
   }, [supabase, eventId]);
 
@@ -58,11 +62,7 @@ export default function WeeklyResultsApp() {
   if (state === "loading") return <main className="main">Loading results...</main>;
   if (state === "error") return <main className="main"><p className="error-text">Results could not be loaded.</p></main>;
 
-  const groups = new Map<string, Row[]>();
-  for (const r of rows) {
-    const k = `${r.distance} ${r.class_name}${r.target_type === "P" ? " (paper)" : ""}`;
-    groups.set(k, [...(groups.get(k) ?? []), r]);
-  }
+  const groups = rankResults(rows);
 
   const trend = monthly.filter((m) => m.distance === dist && m.target_type === tt);
   const series: Series[] = [...new Set(trend.map((m) => m.class_name))].sort().map((c) => ({
@@ -80,35 +80,54 @@ export default function WeeklyResultsApp() {
       {view === "night" && (
         <>
           {events.length === 0 ? <p className="muted">No scores have been saved yet.</p> : (
-            <label className="field"><span>Night</span>
-              <select value={eventId ?? ""} onChange={(e) => setEventId(Number(e.target.value))}>
-                {events.map((e) => <option key={e.id} value={e.id}>{longDate(e.event_date)}</option>)}
-              </select>
-            </label>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10, alignItems: "end" }}>
+              <label className="field" style={{ margin: "14px 0 6px" }}><span>Night</span>
+                <select value={eventId ?? ""} onChange={(e) => { setPickError(""); setEventId(Number(e.target.value)); }}>
+                  {events.map((e) => <option key={e.id} value={e.id}>{longDate(e.event_date)}</option>)}
+                </select>
+              </label>
+              <label className="field" style={{ margin: "14px 0 6px" }}><span>Pick date</span>
+                <input type="date" value={eventDate} onChange={(e) => {
+                  const found = events.find((ev) => ev.event_date === e.target.value);
+                  if (found) { setPickError(""); setEventId(found.id); }
+                  else setPickError(`No scores saved for ${e.target.value ? longDate(e.target.value) : "that date"}.`);
+                }} />
+              </label>
+            </div>
           )}
-          {[...groups.entries()].map(([g, list]) => {
-            const dets = [1, 2, 3, 4].filter((d) => list.some((r) => r.details[String(d)]));
+          {pickError && <p className="error-text">{pickError}</p>}
+          {rows.length > 0 && (
+            <div className="actions" style={{ marginTop: 0 }}>
+              <button className="primary" disabled={printing} onClick={async () => {
+                setPrinting(true);
+                try { await weeklyResultsPdf(eventDate, rows); } finally { setPrinting(false); }
+              }}>{printing ? "Building..." : "Download results PDF"}</button>
+            </div>
+          )}
+          {groups.map((g) => {
+            const list = g.rows;
             return (
-              <section key={g} className="result info" style={{ overflowX: "auto" }}>
-                <div className="result-title">{g}</div>
+              <section key={g.title} className="result info" style={{ overflowX: "auto" }}>
+                <div className="result-title">{g.title}</div>
                 <table style={{ borderCollapse: "collapse", width: "100%", marginTop: 8 }}>
-                  <thead><tr><th style={th}>#</th><th style={th}>Name</th>{dets.map((d) => <th key={d} style={th}>D{d}</th>)}<th style={th}>Best</th></tr></thead>
-                  <tbody>{list.map((r, i) => (
+                  <thead><tr><th style={th}>Place</th><th style={th}>Competitor</th>{[1, 2, 3, 4].map((d) => <th key={d} style={th}>{d}</th>)}<th style={th}>Champ</th><th style={th}>Score</th></tr></thead>
+                  <tbody>{list.map((r) => (
                     <tr key={r.weekly_entry_id}>
-                      <td style={td}>{i > 0 && list[i - 1].best === r.best ? "=" : i + 1}</td>
+                      <td style={td}>{r.tied ? "=" : ""}{r.place}</td>
                       <td style={td}>{r.name}</td>
-                      {dets.map((d) => {
+                      {[1, 2, 3, 4].map((d) => {
                         const s = r.details[String(d)];
-                        return <td key={d} style={td}>{s ? `${s.score}${s.inners != null ? ` (${s.inners})` : ""}` : ""}</td>;
+                        return <td key={d} style={td}>{s ? `${Number(s.score)}${s.inners != null ? ` (${s.inners})` : ""}` : "0"}</td>;
                       })}
-                      <td style={td}><strong>{r.best}</strong></td>
+                      <td style={td}>{r.championship === false ? "N" : "Y"}</td>
+                      <td style={td}><strong>{Number(r.best)}</strong></td>
                     </tr>
                   ))}</tbody>
                 </table>
               </section>
             );
           })}
-          {rows.length > 0 && <p className="muted">Ranked by best score of the night. 90m inners shown in brackets.</p>}
+          {rows.length > 0 && <p className="muted">Placed by best score in class; a tie goes to the next best score. 90m inners shown in brackets. All results are provisional.</p>}
         </>
       )}
 
